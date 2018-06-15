@@ -39,7 +39,6 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-		
 
 		String username = obtainUsername(request);
 		String password = obtainPassword(request);
@@ -51,7 +50,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 			Usuario user = null;
 			try {
 			   user = new ObjectMapper().readValue(request.getInputStream(),Usuario.class);
-			   password = user.getUsername();
+			   username = user.getUsername();
 			   password = user.getPassword();
 			   
 			   logger.info("Username from request parameter (raw): "+ username);
