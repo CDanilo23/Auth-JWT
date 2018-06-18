@@ -8,49 +8,47 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import com.bolsadeideas.springboot.app.auth.service.JWTService;
+import com.bolsadeideas.springboot.app.auth.service.JWTServiceImpl;
 
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
+	
+	private JWTService jwtService;
 
-	public JWTAuthorizationFilter(AuthenticationManager authenticationManager) {
+	public JWTAuthorizationFilter(AuthenticationManager authenticationManager, JWTService jwtService) {
 		super(authenticationManager);
+		this.jwtService = jwtService;
 	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-		
-		String header = request .getHeader("Authorization");
-		
-		if(!requiresAuthentication(header)) {
+
+		String header = request.getHeader(JWTServiceImpl.HEADER_STRING);
+
+		if (!requiresAuthentication(header)) {
 			chain.doFilter(request, response);
 			return;
 		}
-		
-		boolean tokenWell;
-		Claims token = null;
-		try {
-			token = Jwts.parser()
-			.setSigningKey("clave".getBytes())
-			.parseClaimsJws(header.replace("Bearer ", ""))
-			.getBody();
-			tokenWell = true;
-		}catch(JwtException | IllegalArgumentException e) {
-			tokenWell = false;
+
+		UsernamePasswordAuthenticationToken authentication = null;
+
+		if (jwtService.validate(header)) {
+			authentication = new UsernamePasswordAuthenticationToken(jwtService.getUsername(header), null,
+					jwtService.getRoles(header));
 		}
-		
-		if(tokenWell) {
-			String username = token.getSubject();
-		}
-			
+
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		chain.doFilter(request, response);
+
 	}
 	
 	protected boolean requiresAuthentication(String header) {
-		if(header == null || !header.startsWith("Bearer ")) {
+		if(header == null || !header.startsWith(JWTServiceImpl.TOKEN_PREFIX)) {
 			return false;
 		}
 		return true;
